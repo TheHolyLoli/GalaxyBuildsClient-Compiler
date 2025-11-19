@@ -61,7 +61,7 @@ jobs:
       - name: Restore dependencies
         run: |
           cd external-GalaxyBudsClient
-          dotnet restore GalaxyBudsClient.sln
+          dotnet restore GalaxyBudsClient.sln -f net8.0-android34
         continue-on-error: true
 
       # 6. Build the Android target
@@ -70,7 +70,7 @@ jobs:
           cd external-GalaxyBudsClient
           dotnet build GalaxyBudsClient.sln \
             -c Release \
-            -f net8.0-android \
+            -f net8.0-android34 \
             -p:SupportedOSPlatformVersion=34
         continue-on-error: true
       # 7. (Optional) Archive the output
