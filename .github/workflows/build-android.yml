@@ -25,9 +25,10 @@ jobs:
           git checkout master   # or another branch/tag if needed
         working-directory: .
 
-      - name: Patch Android TFM to API 34
+      - name: Patch Android API level for Avalonia
         run: |
-            sed -i 's/net8.0-android21.0/net8.0-android34.0/' external-GalaxyBudsClient/GalaxyBudsClient.Android/GalaxyBudsClient.Android.csproj
+          sed -i 's|<TargetFramework>net8.0-android</TargetFramework>|<TargetFramework>net8.0-android34.0</TargetFramework>|' external-GalaxyBudsClient/GalaxyBudsClient.Android/GalaxyBudsClient.Android.csproj
+          sed -i 's|<SupportedOSPlatformVersion>24</SupportedOSPlatformVersion>|<SupportedOSPlatformVersion>34</SupportedOSPlatformVersion>|' external-GalaxyBudsClient/GalaxyBudsClient.Android/GalaxyBudsClient.Android.csproj
 
 
       # 3. Setup .NET SDK
