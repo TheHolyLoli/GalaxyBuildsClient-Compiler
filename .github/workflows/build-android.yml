@@ -32,7 +32,7 @@ jobs:
 
       - name: Downgrade Avalonia.Android version
         run: |
-          sed -i 's/<PackageReference Include="Avalonia.Android" Version="\$(AvaloniaVersion)" \/>/<PackageReference Include="Avalonia.Android" Version="11.1.5" \/>/' external-GalaxyBudsClient/GalaxyBudsClient.Android/GalaxyBudsClient.Android.csproj
+          sed -i 's/<PackageReference Include="Avalonia.Android" Version="\$(AvaloniaVersion)" \/>/<PackageReference Include="Avalonia.Android" Version="11.0.13" \/>/' external-GalaxyBudsClient/GalaxyBudsClient.Android/GalaxyBudsClient.Android.csproj
 
 
       - name: Show patched csproj
