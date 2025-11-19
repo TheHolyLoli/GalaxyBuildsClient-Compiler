@@ -32,7 +32,7 @@ jobs:
       - name: Patch Android API level for Avalonia
         run: |
           cd external-GalaxyBudsClient/GalaxyBudsClient.Android
-          sed -i 's|<TargetFramework>net8.0-android</TargetFramework>|<TargetFramework>net8.0-android34</TargetFramework>|' external-GalaxyBudsClient/GalaxyBudsClient.Android/GalaxyBudsClient.Android.csproj
+          sed -i 's|<TargetFramework>net8.0-android</TargetFramework>|<TargetFramework>net8.0-android34</TargetFramework>|' GalaxyBudsClient.Android/GalaxyBudsClient.Android.csproj
           sed -i 's/<SupportedOSPlatformVersion>24<\/SupportedOSPlatformVersion>/<SupportedOSPlatformVersion>34<\/SupportedOSPlatformVersion>/' GalaxyBudsClient.Android.csproj
 
       #- name: Downgrade Avalonia.Android version
