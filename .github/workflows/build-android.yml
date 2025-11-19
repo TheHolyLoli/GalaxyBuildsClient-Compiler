@@ -16,7 +16,6 @@ jobs:
           path: GalaxyBudsClient
       
       - name: Setup Java 17
-        # Android API 34 (required by Avalonia 11.2) works best with Java 17.
         uses: actions/setup-java@v4
         with:
           distribution: 'microsoft'
@@ -30,41 +29,48 @@ jobs:
       - name: Install .NET Android Workload
         run: dotnet workload install android
 
-      - name: Patch Project File (Force API 34)
-        # We replace the TFM string on disk to ensure consistency.
-        # We also remove the explicit TargetFrameworkVersion which might conflict.
+      - name: Patch Project File (Force API 34 & Remove RIDs)
+        # 1. Force API 34.
+        # 2. Remove RuntimeIdentifiers to stop it from trying to build x86/x64.
+        # 3. Remove TargetFrameworkVersion to prevent conflicts.
         run: |
           PROJECT_PATH="GalaxyBudsClient/GalaxyBudsClient.Android/GalaxyBudsClient.Android.csproj"
           
-          # Replace net8.0-android with net8.0-android34.0 globally in the file
+          echo "--- Content Before Patch ---"
+          cat $PROJECT_PATH
+
+          # Force specific Android version
           sed -i 's/net8.0-android/net8.0-android34.0/g' $PROJECT_PATH
           
-          # Remove legacy TargetFrameworkVersion line if it exists to avoid conflicts
+          # DELETE the RuntimeIdentifiers line. This is likely the culprit forcing x86 checks.
+          sed -i '/<RuntimeIdentifiers>/d' $PROJECT_PATH
+          
+          # Delete legacy version tag
           sed -i '/<TargetFrameworkVersion>/d' $PROJECT_PATH
           
-          echo "--- Verified Project File Content ---"
-          grep "<TargetFramework>" $PROJECT_PATH
+          echo "--- Content After Patch ---"
+          cat $PROJECT_PATH
 
       - name: Restore Dependencies
-        # We explicitly pass the TargetFramework property to override any lingering defaults.
-        # -p:TargetFramework is the correct syntax for 'restore' (avoiding MSB1001).
+        # We specify the Runtime (-r) here to ensure we ONLY restore for ARM64.
         run: |
           dotnet restore GalaxyBudsClient/GalaxyBudsClient.Android/GalaxyBudsClient.Android.csproj \
+            -r android-arm64 \
             -p:TargetFramework=net8.0-android34.0
 
       - name: Publish Android APK (Release)
-        # We force the TargetFramework again during publish to be absolutely sure.
         run: |
           dotnet publish GalaxyBudsClient/GalaxyBudsClient.Android/GalaxyBudsClient.Android.csproj \
             -c Release \
-            -p:TargetFramework=net8.0-android34.0 \
-            --runtime android-arm64 \
+            -f net8.0-android34.0 \
+            -r android-arm64 \
             -p:NoDemo=true \
             --self-contained true
 
       - name: Find Generated APK File
         id: find_apk
         run: |
+          # Find the apk. We use find because the output path might vary slightly.
           APK_FILE=$(find GalaxyBudsClient/GalaxyBudsClient.Android/bin/Release -name "*.apk" | head -n 1)
           echo "Found APK: $APK_FILE"
           echo "apk_path=$APK_FILE" >> $GITHUB_OUTPUT
