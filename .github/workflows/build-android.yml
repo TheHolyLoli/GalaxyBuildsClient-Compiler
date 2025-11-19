@@ -30,6 +30,11 @@ jobs:
           cd external-GalaxyBudsClient/GalaxyBudsClient.Android
           sed -i 's/<SupportedOSPlatformVersion>24<\/SupportedOSPlatformVersion>/<SupportedOSPlatformVersion>34<\/SupportedOSPlatformVersion>/' GalaxyBudsClient.Android.csproj
 
+      - name: Downgrade Avalonia.Android version
+        run: |
+          sed -i 's/<PackageReference Include="Avalonia.Android" Version="\$(AvaloniaVersion)" \/>/<PackageReference Include="Avalonia.Android" Version="11.1.5" \/>/' external-GalaxyBudsClient/GalaxyBudsClient.Android/GalaxyBudsClient.Android.csproj
+
+
       - name: Show patched csproj
         run: cat external-GalaxyBudsClient/GalaxyBudsClient.Android/GalaxyBudsClient.Android.csproj
 
