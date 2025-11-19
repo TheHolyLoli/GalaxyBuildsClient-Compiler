@@ -11,16 +11,13 @@ jobs:
     
     steps:
       - name: Checkout Workflow Repository
-        # This step is standard, but we don't strictly need it if the workflow is only cloning another repo. 
-        # Keeping it for standard structure.
         uses: actions/checkout@v4
 
       - name: Checkout Target Repository (GalaxyBudsClient)
-        # Clones the target repository into a local directory named 'GalaxyBudsClient'
         uses: actions/checkout@v4
         with:
           repository: timschneeb/GalaxyBudsClient
-          ref: master # Assuming you want the master branch
+          ref: master
           path: GalaxyBudsClient
       
       - name: Setup .NET SDK 8.x
@@ -29,21 +26,19 @@ jobs:
           dotnet-version: '8.x'
 
       - name: Install .NET Android Workload
-        # The 'net8.0-android' target framework requires the Android workload to be installed.
         run: dotnet workload install android
       
+      - name: Patch TargetFramework to Android 34
+        # REQUIRED FIX: The original csproj uses 'net8.0-android' which defaults to API 21.
+        # Avalonia 11.2.2 requires API 34. We modify the file directly to enforce this.
+        run: |
+          sed -i 's/<TargetFramework>net8.0-android<\/TargetFramework>/<TargetFramework>net8.0-android34.0<\/TargetFramework>/' GalaxyBudsClient/GalaxyBudsClient.Android/GalaxyBudsClient.Android.csproj
+
       - name: Restore Dependencies
-        # Restore dependencies, explicitly setting the target framework version to net8.0-android34.0
-        # to satisfy the Avalonia package's dependency requirements (Android API 34).
-        # Using -p:TargetFramework instead of --framework to avoid MSB1001 error.
-        run: dotnet restore GalaxyBudsClient/GalaxyBudsClient.Android/GalaxyBudsClient.Android.csproj -p:TargetFramework=net8.0-android34.0
+        # Now that the csproj is patched, a standard restore will work correctly.
+        run: dotnet restore GalaxyBudsClient/GalaxyBudsClient.Android/GalaxyBudsClient.Android.csproj
 
       - name: Publish Android APK (Release)
-        # We use 'publish' to compile and package the application.
-        # -c Release: Build in Release mode.
-        # -f net8.0-android34.0: Target the specific framework version (API 34) to fix the NU1202 error.
-        # --runtime android-arm64: Target the 64-bit ARM architecture (most common).
-        # -p:NoDemo=true: Based on your .csproj, this defines the ApplicationId for the full version.
         run: |
           dotnet publish GalaxyBudsClient/GalaxyBudsClient.Android/GalaxyBudsClient.Android.csproj \
             -c Release \
@@ -53,14 +48,12 @@ jobs:
             --self-contained true
 
       - name: Find Generated APK File
-        # The publish command outputs the APK to a nested 'bin' directory. We find the file for upload.
         id: find_apk
         run: |
           APK_FILE=$(find GalaxyBudsClient/GalaxyBudsClient.Android/bin/Release -name "*.apk" | head -n 1)
           echo "apk_path=$APK_FILE" >> $GITHUB_OUTPUT
 
       - name: Upload APK Artifact
-        # Makes the built APK available for download on the GitHub Actions summary page.
         uses: actions/upload-artifact@v4
         with:
           name: GalaxyBudsClient-Android-APK
