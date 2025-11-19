@@ -16,8 +16,7 @@ jobs:
           path: GalaxyBudsClient
       
       - name: Setup Java 17
-        # Android API 34 components often require Java 17. 
-        # This ensures the environment is compatible with the newer build tools.
+        # Android API 34 (required by Avalonia 11.2) works best with Java 17.
         uses: actions/setup-java@v4
         with:
           distribution: 'microsoft'
@@ -31,35 +30,34 @@ jobs:
       - name: Install .NET Android Workload
         run: dotnet workload install android
 
-      - name: Patch TargetFramework (Robust)
-        # We replace the exact TFM string.
-        # 1. Check file exists
-        # 2. Use simple string replacement to avoid XML parsing issues
-        # 3. Print the specific line to confirm the change
+      - name: Patch Project File (Force API 34)
+        # We replace the TFM string on disk to ensure consistency.
+        # We also remove the explicit TargetFrameworkVersion which might conflict.
         run: |
           PROJECT_PATH="GalaxyBudsClient/GalaxyBudsClient.Android/GalaxyBudsClient.Android.csproj"
           
-          echo "--- Original TargetFramework Line ---"
-          grep "<TargetFramework>" $PROJECT_PATH
-          
-          # Forcefully replace net8.0-android with net8.0-android34.0
-          # We intentionally don't match the XML tags to avoid whitespace issues.
-          # This assumes the string "net8.0-android" appears in the target framework tag.
+          # Replace net8.0-android with net8.0-android34.0 globally in the file
           sed -i 's/net8.0-android/net8.0-android34.0/g' $PROJECT_PATH
           
-          echo "--- Patched TargetFramework Line ---"
+          # Remove legacy TargetFrameworkVersion line if it exists to avoid conflicts
+          sed -i '/<TargetFrameworkVersion>/d' $PROJECT_PATH
+          
+          echo "--- Verified Project File Content ---"
           grep "<TargetFramework>" $PROJECT_PATH
 
       - name: Restore Dependencies
-        # The project file is now physically changed on disk.
-        run: dotnet restore GalaxyBudsClient/GalaxyBudsClient.Android/GalaxyBudsClient.Android.csproj
+        # We explicitly pass the TargetFramework property to override any lingering defaults.
+        # -p:TargetFramework is the correct syntax for 'restore' (avoiding MSB1001).
+        run: |
+          dotnet restore GalaxyBudsClient/GalaxyBudsClient.Android/GalaxyBudsClient.Android.csproj \
+            -p:TargetFramework=net8.0-android34.0
 
       - name: Publish Android APK (Release)
-        # We target the specific framework we just patched in.
+        # We force the TargetFramework again during publish to be absolutely sure.
         run: |
           dotnet publish GalaxyBudsClient/GalaxyBudsClient.Android/GalaxyBudsClient.Android.csproj \
             -c Release \
-            -f net8.0-android34.0 \
+            -p:TargetFramework=net8.0-android34.0 \
             --runtime android-arm64 \
             -p:NoDemo=true \
             --self-contained true
