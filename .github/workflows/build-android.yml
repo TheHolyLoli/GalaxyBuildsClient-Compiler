@@ -1,0 +1,57 @@
+name: Build GalaxyBudsClient Android
+
+on:
+  workflow_dispatch:   # allows manual run
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    steps:
+      # 1. Checkout this workflow’s repository (if needed)
+      - name: Checkout self
+        uses: actions/checkout@v4
+
+      # 2. Clone the external GalaxyBudsClient repo
+      - name: Clone GalaxyBudsClient repo
+        run: |
+          git clone https://github.com/timschneeb/GalaxyBudsClient.git external-GalaxyBudsClient
+          cd external-GalaxyBudsClient
+          git checkout main   # or another branch/tag if needed
+        working-directory: .
+
+      # 3. Setup .NET SDK
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'  # adjust based on project requirement
+
+      # 4. Install Android workload
+      - name: Install Android workload
+        run: |
+          dotnet workload install android
+
+      # 5. Restore dependencies
+      - name: Restore dependencies
+        run: |
+          cd external-GalaxyBudsClient
+          dotnet restore GalaxyBudsClient.sln
+
+      # 6. Build the Android target
+      - name: Build Android
+        run: |
+          cd external-GalaxyBudsClient
+          dotnet build GalaxyBudsClient.sln -c Release -f net8.0-android   # adjust target framework if different
+
+      # 7. (Optional) Archive the output
+      - name: Archive build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: GalaxyBudsClient-Android
+          path: |
+            external-GalaxyBudsClient/**/bin/Release/net8.0-android/**/*.apk   # adjust path/extension if needed
