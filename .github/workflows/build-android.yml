@@ -46,7 +46,7 @@ jobs:
       - name: Build Android
         run: |
           cd external-GalaxyBudsClient
-          dotnet build GalaxyBudsClient.sln -c Release -f net8.0-android   # adjust target framework if different
+          dotnet build GalaxyBudsClient.sln -c Release -f net10.0-android   # adjust target framework if different
 
       # 7. (Optional) Archive the output
       - name: Archive build artifacts
@@ -54,4 +54,4 @@ jobs:
         with:
           name: GalaxyBudsClient-Android
           path: |
-            external-GalaxyBudsClient/**/bin/Release/net8.0-android/**/*.apk   # adjust path/extension if needed
+            external-GalaxyBudsClient/**/bin/Release/net10.0-android/**/*.apk   # adjust path/extension if needed
