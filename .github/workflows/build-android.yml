@@ -1,24 +1,27 @@
 name: Android Client Build
 
 on:
-  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
 jobs:
   build_android_apk:
-    # Use a standard Linux runner
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout Workflow Repository
-        uses: actions/checkout@v4
-
-      - name: Checkout Target Repository (GalaxyBudsClient)
+      - name: Checkout Target Repository
         uses: actions/checkout@v4
         with:
           repository: timschneeb/GalaxyBudsClient
           ref: master
           path: GalaxyBudsClient
+      
+      - name: Setup Java 17
+        # Android API 34 components often require Java 17. 
+        # This ensures the environment is compatible with the newer build tools.
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'microsoft'
+          java-version: '17'
       
       - name: Setup .NET SDK 8.x
         uses: actions/setup-dotnet@v4
@@ -27,25 +30,32 @@ jobs:
 
       - name: Install .NET Android Workload
         run: dotnet workload install android
-      
-      - name: Patch TargetFramework to Android 34
-        # REQUIRED FIX: Using a regex wildcard (.*) inside the tag to ignore potential whitespace mismatch.
-        # We replace whatever is currently in TargetFramework with 'net8.0-android34.0'.
-        # We also verify the file content before and after to ensure the patch worked.
+
+      - name: Patch TargetFramework (Robust)
+        # We replace the exact TFM string.
+        # 1. Check file exists
+        # 2. Use simple string replacement to avoid XML parsing issues
+        # 3. Print the specific line to confirm the change
         run: |
-          echo "Content before patch:"
-          grep "TargetFramework" GalaxyBudsClient/GalaxyBudsClient.Android/GalaxyBudsClient.Android.csproj
+          PROJECT_PATH="GalaxyBudsClient/GalaxyBudsClient.Android/GalaxyBudsClient.Android.csproj"
           
-          sed -i 's|<TargetFramework>.*</TargetFramework>|<TargetFramework>net8.0-android34.0</TargetFramework>|g' GalaxyBudsClient/GalaxyBudsClient.Android/GalaxyBudsClient.Android.csproj
+          echo "--- Original TargetFramework Line ---"
+          grep "<TargetFramework>" $PROJECT_PATH
           
-          echo "Content after patch:"
-          grep "TargetFramework" GalaxyBudsClient/GalaxyBudsClient.Android/GalaxyBudsClient.Android.csproj
+          # Forcefully replace net8.0-android with net8.0-android34.0
+          # We intentionally don't match the XML tags to avoid whitespace issues.
+          # This assumes the string "net8.0-android" appears in the target framework tag.
+          sed -i 's/net8.0-android/net8.0-android34.0/g' $PROJECT_PATH
+          
+          echo "--- Patched TargetFramework Line ---"
+          grep "<TargetFramework>" $PROJECT_PATH
 
       - name: Restore Dependencies
-        # Now that the csproj is definitely patched, this should succeed.
+        # The project file is now physically changed on disk.
         run: dotnet restore GalaxyBudsClient/GalaxyBudsClient.Android/GalaxyBudsClient.Android.csproj
 
       - name: Publish Android APK (Release)
+        # We target the specific framework we just patched in.
         run: |
           dotnet publish GalaxyBudsClient/GalaxyBudsClient.Android/GalaxyBudsClient.Android.csproj \
             -c Release \
@@ -58,6 +68,7 @@ jobs:
         id: find_apk
         run: |
           APK_FILE=$(find GalaxyBudsClient/GalaxyBudsClient.Android/bin/Release -name "*.apk" | head -n 1)
+          echo "Found APK: $APK_FILE"
           echo "apk_path=$APK_FILE" >> $GITHUB_OUTPUT
 
       - name: Upload APK Artifact
