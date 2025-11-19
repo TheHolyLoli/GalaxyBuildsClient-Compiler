@@ -31,6 +31,10 @@ jobs:
           sed -i 's/<TargetFrameworkVersion>v14.0<\/TargetFrameworkVersion>/<TargetFrameworkVersion>v34.0<\/TargetFrameworkVersion>/' GalaxyBudsClient.Android.csproj
           sed -i 's/<SupportedOSPlatformVersion>24<\/SupportedOSPlatformVersion>/<SupportedOSPlatformVersion>34<\/SupportedOSPlatformVersion>/' GalaxyBudsClient.Android.csproj
 
+      - name: Show patched csproj
+        run: cat external-GalaxyBudsClient/GalaxyBudsClient.Android/GalaxyBudsClient.Android.csproj
+
+
 
       # 3. Setup .NET SDK
       - name: Setup .NET SDK
