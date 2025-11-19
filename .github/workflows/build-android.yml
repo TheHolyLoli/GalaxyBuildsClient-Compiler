@@ -25,6 +25,11 @@ jobs:
           git checkout master   # or another branch/tag if needed
         working-directory: .
 
+      - name: Patch Android TFM to API 34
+        run: |
+            sed -i 's/net8.0-android21.0/net8.0-android34.0/' external-GalaxyBudsClient/GalaxyBudsClient.Android/GalaxyBudsClient.Android.csproj
+
+
       # 3. Setup .NET SDK
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
