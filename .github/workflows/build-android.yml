@@ -12,6 +12,10 @@ on:
 jobs:
   build-android:
     runs-on: ubuntu-latest
+    env:
+      DOTNET_ANDROID_TARGET_API: 34
+      DOTNET_ANDROID_MIN_SDK_VERSION: 21
+      
     steps:
       # 1. Checkout this workflow’s repository (if needed)
       - name: Checkout self
