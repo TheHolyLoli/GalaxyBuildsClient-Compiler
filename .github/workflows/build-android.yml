@@ -35,7 +35,8 @@ jobs:
       - name: Restore Dependencies
         # Restore dependencies, explicitly setting the target framework version to net8.0-android34.0
         # to satisfy the Avalonia package's dependency requirements (Android API 34).
-        run: dotnet restore GalaxyBudsClient/GalaxyBudsClient.Android/GalaxyBudsClient.Android.csproj --framework net8.0-android34.0
+        # Using -p:TargetFramework instead of --framework to avoid MSB1001 error.
+        run: dotnet restore GalaxyBudsClient/GalaxyBudsClient.Android/GalaxyBudsClient.Android.csproj -p:TargetFramework=net8.0-android34.0
 
       - name: Publish Android APK (Release)
         # We use 'publish' to compile and package the application.
