@@ -1,85 +1,66 @@
-name: Build GalaxyBudsClient Android
+name: Android Client Build
 
 on:
-  workflow_dispatch:   # allows manual run
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
 
 jobs:
-  build-android:
+  build_android_apk:
+    # Use a standard Linux runner
     runs-on: ubuntu-latest
-    env:
-      DOTNET_ANDROID_TARGET_API: 34
-      DOTNET_ANDROID_MIN_SDK_VERSION: 21
-      
+    
     steps:
-      # 1. Checkout this workflow’s repository (if needed)
-      - name: Checkout self
+      - name: Checkout Workflow Repository
+        # This step is standard, but we don't strictly need it if the workflow is only cloning another repo. 
+        # Keeping it for standard structure.
         uses: actions/checkout@v4
 
-      # 2. Clone the external GalaxyBudsClient repo
-      - name: Clone GalaxyBudsClient repo
-        run: |
-          git clone https://github.com/timschneeb/GalaxyBudsClient.git external-GalaxyBudsClient
-          cd external-GalaxyBudsClient
-          git checkout master   # or another branch/tag if needed
-        working-directory: .
-
-      - name: Patch Android API level for Avalonia
-        run: |
-          cd external-GalaxyBudsClient/GalaxyBudsClient.Android
-          sed -i 's|<TargetFramework>net8.0-android</TargetFramework>|<TargetFramework>net8.0-android34</TargetFramework>|' GalaxyBudsClient.Android.csproj
-          sed -i 's/<SupportedOSPlatformVersion>24<\/SupportedOSPlatformVersion>/<SupportedOSPlatformVersion>34<\/SupportedOSPlatformVersion>/' GalaxyBudsClient.Android.csproj
-
-      #- name: Downgrade Avalonia.Android version
-      #  run: |
-      #    sed -i 's/<PackageReference Include="Avalonia.Android" Version="\$(AvaloniaVersion)" \/>/<PackageReference Include="Avalonia.Android" Version="11.0.13" \/>/' external-GalaxyBudsClient/GalaxyBudsClient.Android/GalaxyBudsClient.Android.csproj
-
-
-      - name: Show patched csproj
-        run: cat external-GalaxyBudsClient/GalaxyBudsClient.Android/GalaxyBudsClient.Android.csproj
-
-
-
-      # 3. Setup .NET SDK
-      - name: Setup .NET SDK
+      - name: Checkout Target Repository (GalaxyBudsClient)
+        # Clones the target repository into a local directory named 'GalaxyBudsClient'
+        uses: actions/checkout@v4
+        with:
+          repository: timschneeb/GalaxyBudsClient
+          ref: master # Assuming you want the master branch
+          path: GalaxyBudsClient
+      
+      - name: Setup .NET SDK 8.x
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'  # adjust based on project requirement
-        continue-on-error: true
+          dotnet-version: '8.x'
 
-      # 4. Install Android workload
-      - name: Install Android workload
-        run: |
-          dotnet workload install android
-          yes | sdkmanager "platforms;android-34"
-        continue-on-error: true
+      - name: Install .NET Android Workload
+        # The 'net8.0-android' target framework requires the Android workload to be installed.
+        run: dotnet workload install android
+      
+      - name: Restore Dependencies
+        # Restore dependencies for the entire solution/project.
+        run: dotnet restore GalaxyBudsClient/GalaxyBudsClient.Android/GalaxyBudsClient.Android.csproj
 
-      # 5. Restore dependencies
-      - name: Restore dependencies
+      - name: Publish Android APK (Release)
+        # We use 'publish' to compile and package the application.
+        # -c Release: Build in Release mode.
+        # -f net8.0-android: Target the specific framework.
+        # --runtime android-arm64: Target the 64-bit ARM architecture (most common).
+        # -p:NoDemo=true: Based on your .csproj, this defines the ApplicationId for the full version.
         run: |
-          cd external-GalaxyBudsClient
-          dotnet restore GalaxyBudsClient.Android/GalaxyBudsClient.Android.csproj -p:TargetFramework=net8.0-android34 -p:SupportedOSPlatformVersion=3
-        continue-on-error: true
-
-      # 6. Build the Android target
-      - name: Build Android
-        run: |
-          cd external-GalaxyBudsClient
-          dotnet build GalaxyBudsClient.sln \
+          dotnet publish GalaxyBudsClient/GalaxyBudsClient.Android/GalaxyBudsClient.Android.csproj \
             -c Release \
-            -f net8.0-android34 \
-            -p:TargetFramework=net8.0-android34
-            -p:SupportedOSPlatformVersion=34
-        continue-on-error: true
-      # 7. (Optional) Archive the output
-      - name: Archive build artifacts
+            -f net8.0-android \
+            --runtime android-arm64 \
+            -p:NoDemo=true \
+            --self-contained true
+
+      - name: Find Generated APK File
+        # The publish command outputs the APK to a nested 'bin' directory. We find the file for upload.
+        id: find_apk
+        run: |
+          APK_FILE=$(find GalaxyBudsClient/GalaxyBudsClient.Android/bin/Release -name "*.apk" | head -n 1)
+          echo "apk_path=$APK_FILE" >> $GITHUB_OUTPUT
+
+      - name: Upload APK Artifact
+        # Makes the built APK available for download on the GitHub Actions summary page.
         uses: actions/upload-artifact@v4
         with:
-          name: GalaxyBudsClient-Android
-          path: |
-            external-GalaxyBudsClient/**/bin/Release/net8.0-android/**/*.apk   # adjust path/extension if needed
+          name: GalaxyBudsClient-Android-APK
+          path: ${{ steps.find_apk.outputs.apk_path }}
+          retention-days: 7
