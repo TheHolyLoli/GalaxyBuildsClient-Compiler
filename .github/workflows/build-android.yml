@@ -27,9 +27,9 @@ jobs:
 
       - name: Patch Android API level for Avalonia
         run: |
-          sed -i 's|<TargetFramework>net8.0-android</TargetFramework>|<TargetFramework>net8.0-android34.0</TargetFramework>|' external-GalaxyBudsClient/GalaxyBudsClient.Android/GalaxyBudsClient.Android.csproj
-          sed -i 's|<SupportedOSPlatformVersion>24</SupportedOSPlatformVersion>|<SupportedOSPlatformVersion>34</SupportedOSPlatformVersion>|' external-GalaxyBudsClient/GalaxyBudsClient.Android/GalaxyBudsClient.Android.csproj
-          sed -i 's/Version="\$(AvaloniaVersion)"/Version="11.2.2"/' external-GalaxyBudsClient/GalaxyBudsClient.Android/GalaxyBudsClient.Android.csproj
+          cd external-GalaxyBudsClient/GalaxyBudsClient.Android
+          sed -i 's/<TargetFrameworkVersion>v14.0<\/TargetFrameworkVersion>/<TargetFrameworkVersion>v34.0<\/TargetFrameworkVersion>/' GalaxyBudsClient.Android.csproj
+          sed -i 's/<SupportedOSPlatformVersion>24<\/SupportedOSPlatformVersion>/<SupportedOSPlatformVersion>34<\/SupportedOSPlatformVersion>/' GalaxyBudsClient.Android.csproj
 
 
       # 3. Setup .NET SDK
