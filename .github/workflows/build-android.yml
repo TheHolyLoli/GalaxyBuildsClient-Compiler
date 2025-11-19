@@ -15,7 +15,32 @@ jobs:
           ref: master
           path: GalaxyBudsClient
       
+      - name: Patch Project File (Run BEFORE Setup)
+        # We patch the file immediately after checkout to ensure all subsequent dotnet commands see the correct version.
+        # 1. Force API 34 (net8.0-android -> net8.0-android34.0)
+        # 2. Remove RuntimeIdentifiers entirely to prevent restoration for x86/x64.
+        # 3. Remove TargetFrameworkVersion to avoid conflicts with the TFM.
+        run: |
+          PROJECT_PATH="GalaxyBudsClient/GalaxyBudsClient.Android/GalaxyBudsClient.Android.csproj"
+          
+          echo "--- Content Before Patch ---"
+          grep -E "TargetFramework|RuntimeIdentifiers" $PROJECT_PATH || echo "Tags not found via grep"
+
+          # 1. Replace generic TFM with specific API 34 TFM
+          sed -i 's/net8.0-android/net8.0-android34.0/g' $PROJECT_PATH
+          
+          # 2. Delete the RuntimeIdentifiers line completely. 
+          # This prevents the build system from trying to validate the package against x86/x64.
+          sed -i '/<RuntimeIdentifiers>/d' $PROJECT_PATH
+          
+          # 3. Delete legacy version tag
+          sed -i '/<TargetFrameworkVersion>/d' $PROJECT_PATH
+          
+          echo "--- Content After Patch ---"
+          grep -E "TargetFramework|RuntimeIdentifiers" $PROJECT_PATH || echo "Tags not found via grep"
+
       - name: Setup Java 17
+        # Required for Android API 34
         uses: actions/setup-java@v4
         with:
           distribution: 'microsoft'
@@ -29,30 +54,9 @@ jobs:
       - name: Install .NET Android Workload
         run: dotnet workload install android
 
-      - name: Patch Project File (Force API 34 & Remove RIDs)
-        # 1. Force API 34.
-        # 2. Remove RuntimeIdentifiers to stop it from trying to build x86/x64.
-        # 3. Remove TargetFrameworkVersion to prevent conflicts.
-        run: |
-          PROJECT_PATH="GalaxyBudsClient/GalaxyBudsClient.Android/GalaxyBudsClient.Android.csproj"
-          
-          echo "--- Content Before Patch ---"
-          cat $PROJECT_PATH
-
-          # Force specific Android version
-          sed -i 's/net8.0-android/net8.0-android34.0/g' $PROJECT_PATH
-          
-          # DELETE the RuntimeIdentifiers line. This is likely the culprit forcing x86 checks.
-          sed -i '/<RuntimeIdentifiers>/d' $PROJECT_PATH
-          
-          # Delete legacy version tag
-          sed -i '/<TargetFrameworkVersion>/d' $PROJECT_PATH
-          
-          echo "--- Content After Patch ---"
-          cat $PROJECT_PATH
-
       - name: Restore Dependencies
-        # We specify the Runtime (-r) here to ensure we ONLY restore for ARM64.
+        # We explicitly restore for the ARM64 runtime to match our target.
+        # Since the project file is patched, -p:TargetFramework should be redundant but is kept for safety.
         run: |
           dotnet restore GalaxyBudsClient/GalaxyBudsClient.Android/GalaxyBudsClient.Android.csproj \
             -r android-arm64 \
@@ -70,7 +74,6 @@ jobs:
       - name: Find Generated APK File
         id: find_apk
         run: |
-          # Find the apk. We use find because the output path might vary slightly.
           APK_FILE=$(find GalaxyBudsClient/GalaxyBudsClient.Android/bin/Release -name "*.apk" | head -n 1)
           echo "Found APK: $APK_FILE"
           echo "apk_path=$APK_FILE" >> $GITHUB_OUTPUT
