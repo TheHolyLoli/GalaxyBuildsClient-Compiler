@@ -22,7 +22,7 @@ jobs:
         run: |
           git clone https://github.com/timschneeb/GalaxyBudsClient.git external-GalaxyBudsClient
           cd external-GalaxyBudsClient
-          git checkout main   # or another branch/tag if needed
+          git checkout master   # or another branch/tag if needed
         working-directory: .
 
       # 3. Setup .NET SDK
