@@ -28,7 +28,6 @@ jobs:
       - name: Patch Android API level for Avalonia
         run: |
           cd external-GalaxyBudsClient/GalaxyBudsClient.Android
-          sed -i 's/<TargetFrameworkVersion>v14.0<\/TargetFrameworkVersion>/<TargetFrameworkVersion>v34.0<\/TargetFrameworkVersion>/' GalaxyBudsClient.Android.csproj
           sed -i 's/<SupportedOSPlatformVersion>24<\/SupportedOSPlatformVersion>/<SupportedOSPlatformVersion>34<\/SupportedOSPlatformVersion>/' GalaxyBudsClient.Android.csproj
 
       - name: Show patched csproj
