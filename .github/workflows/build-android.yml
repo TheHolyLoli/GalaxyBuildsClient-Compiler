@@ -29,13 +29,20 @@ jobs:
         run: dotnet workload install android
       
       - name: Patch TargetFramework to Android 34
-        # REQUIRED FIX: The original csproj uses 'net8.0-android' which defaults to API 21.
-        # Avalonia 11.2.2 requires API 34. We modify the file directly to enforce this.
+        # REQUIRED FIX: Using a regex wildcard (.*) inside the tag to ignore potential whitespace mismatch.
+        # We replace whatever is currently in TargetFramework with 'net8.0-android34.0'.
+        # We also verify the file content before and after to ensure the patch worked.
         run: |
-          sed -i 's/<TargetFramework>net8.0-android<\/TargetFramework>/<TargetFramework>net8.0-android34.0<\/TargetFramework>/' GalaxyBudsClient/GalaxyBudsClient.Android/GalaxyBudsClient.Android.csproj
+          echo "Content before patch:"
+          grep "TargetFramework" GalaxyBudsClient/GalaxyBudsClient.Android/GalaxyBudsClient.Android.csproj
+          
+          sed -i 's|<TargetFramework>.*</TargetFramework>|<TargetFramework>net8.0-android34.0</TargetFramework>|g' GalaxyBudsClient/GalaxyBudsClient.Android/GalaxyBudsClient.Android.csproj
+          
+          echo "Content after patch:"
+          grep "TargetFramework" GalaxyBudsClient/GalaxyBudsClient.Android/GalaxyBudsClient.Android.csproj
 
       - name: Restore Dependencies
-        # Now that the csproj is patched, a standard restore will work correctly.
+        # Now that the csproj is definitely patched, this should succeed.
         run: dotnet restore GalaxyBudsClient/GalaxyBudsClient.Android/GalaxyBudsClient.Android.csproj
 
       - name: Publish Android APK (Release)
