@@ -62,7 +62,6 @@ jobs:
           dotnet build GalaxyBudsClient.sln \
             -c Release \
             -f net8.0-android \
-            -p:TargetFrameworkVersion=v34.0 \
             -p:SupportedOSPlatformVersion=34
         continue-on-error: true
       # 7. (Optional) Archive the output
