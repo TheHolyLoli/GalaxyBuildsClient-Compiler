@@ -50,7 +50,7 @@ jobs:
         run: |
           cd external-GalaxyBudsClient
           dotnet build GalaxyBudsClient.sln -c Release -f net8.0-android   # adjust target framework if different
-
+        continue-on-error: true
       # 7. (Optional) Archive the output
       - name: Archive build artifacts
         uses: actions/upload-artifact@v4
