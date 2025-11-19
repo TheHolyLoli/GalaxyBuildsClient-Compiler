@@ -33,19 +33,20 @@ jobs:
         run: dotnet workload install android
       
       - name: Restore Dependencies
-        # Restore dependencies for the entire solution/project.
-        run: dotnet restore GalaxyBudsClient/GalaxyBudsClient.Android/GalaxyBudsClient.Android.csproj
+        # Restore dependencies, explicitly setting the target framework version to net8.0-android34.0
+        # to satisfy the Avalonia package's dependency requirements (Android API 34).
+        run: dotnet restore GalaxyBudsClient/GalaxyBudsClient.Android/GalaxyBudsClient.Android.csproj --framework net8.0-android34.0
 
       - name: Publish Android APK (Release)
         # We use 'publish' to compile and package the application.
         # -c Release: Build in Release mode.
-        # -f net8.0-android: Target the specific framework.
+        # -f net8.0-android34.0: Target the specific framework version (API 34) to fix the NU1202 error.
         # --runtime android-arm64: Target the 64-bit ARM architecture (most common).
         # -p:NoDemo=true: Based on your .csproj, this defines the ApplicationId for the full version.
         run: |
           dotnet publish GalaxyBudsClient/GalaxyBudsClient.Android/GalaxyBudsClient.Android.csproj \
             -c Release \
-            -f net8.0-android \
+            -f net8.0-android34.0 \
             --runtime android-arm64 \
             -p:NoDemo=true \
             --self-contained true
