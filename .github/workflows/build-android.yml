@@ -1,7 +1,7 @@
 name: Build Android (API 34, net8.0-android)
 
 on:
-  workflow_dispatch:
+  #workflow_dispatch:
   push:
     branches: [ main ]
   pull_request:
@@ -32,7 +32,6 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '11'
-          cache: 'maven' # optional cache for build speed
 
       - name: Setup Android SDK and install API 34
         uses: android-actions/setup-android@v3
