@@ -2,6 +2,7 @@
 name: Build Android (API 34, net8.0-android)
 
 on:
+  workflow_dispatch:
   push:
     branches: [ main ]
   pull_request:
