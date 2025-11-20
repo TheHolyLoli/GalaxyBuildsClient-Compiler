@@ -19,8 +19,8 @@ jobs:
     steps:
     - name: Install required system tools
       run: |
-        apt-get update
-        apt-get install -y tar unzip git ca-certificates
+        apt update
+        apt install -y tar unzip git ca-certificates
 
     - name: Checkout self
       uses: actions/checkout@v4
