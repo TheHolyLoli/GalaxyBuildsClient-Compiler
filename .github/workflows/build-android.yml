@@ -32,15 +32,26 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: 17
-
-      - name: Setup Android SDK and install API 34
-        uses: android-actions/setup-android@v3
-        with:
-          # installs commandline tools + platform-tools by default;
-          # also install platform API 34 and build-tools 34.0.0
-          packages: 'platform-tools "platforms;android-34" "build-tools;34.0.0"'
-          accept-android-sdk-licenses: 'true'
-        # This action will set up ANDROID_SDK_ROOT and add sdkmanager to PATH. :contentReference[oaicite:1]{index=1}
+      
+      - name: Install Android cmdline-tools v9 (stable)
+        run: |
+          mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
+          cd $ANDROID_SDK_ROOT/cmdline-tools
+          wget https://dl.google.com/android/repository/commandlinetools-linux-8092744_latest.zip -O tools.zip
+          unzip -q tools.zip
+          rm tools.zip
+          ls cmdline-tools/bin
+          mv cmdline-tools latest
+      
+      - name: Accept licenses and install Android API 34
+        run: |
+          mkdir -p ~/.android
+          touch ~/.android/repositories.cfg
+          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses
+          $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager \
+            "platform-tools" \
+            "platforms;android-34" \
+            "build-tools;34.0.0"
 
       - name: Setup .NET 8 SDK
         uses: actions/setup-dotnet@v3
