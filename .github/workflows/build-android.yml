@@ -40,6 +40,8 @@ jobs:
           wget https://dl.google.com/android/repository/commandlinetools-linux-8092744_latest.zip -O tools.zip
           unzip -q tools.zip
           rm tools.zip
+          ls .
+          ls cmdline-tools
           mv cmdline-tools latest
       
       - name: Accept licenses and install Android API 34
