@@ -33,26 +33,25 @@ jobs:
           distribution: 'temurin'
           java-version: 17
           
-      - name: Install Android cmdline-tools
+      - name: Install Android cmdline-tools v9 (stable)
         run: |
           mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
           cd $ANDROID_SDK_ROOT/cmdline-tools
-          wget https://dl.google.com/android/repository/commandlinetools-linux-12266719_latest.zip -O tools.zip
+          wget https://dl.google.com/android/repository/commandlinetools-linux-8092744_latest.zip -O tools.zip
           unzip -q tools.zip
           rm tools.zip
-          # Keep the cmdline-tools folder inside latest
-          mkdir -p latest
-          mv cmdline-tools latest/
+          mv cmdline-tools latest
       
-      - name: Accept licenses and install SDK
+      - name: Accept licenses and install Android API 34
         run: |
           mkdir -p ~/.android
           touch ~/.android/repositories.cfg
-          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/cmdline-tools/bin/sdkmanager --licenses
-          $ANDROID_SDK_ROOT/cmdline-tools/latest/cmdline-tools/bin/sdkmanager \
+          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses
+          $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager \
             "platform-tools" \
             "platforms;android-34" \
             "build-tools;34.0.0"
+
 
 
       # - name: Setup Android SDK and install API 34
