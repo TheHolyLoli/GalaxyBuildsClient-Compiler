@@ -40,23 +40,20 @@ jobs:
           wget https://dl.google.com/android/repository/commandlinetools-linux-12266719_latest.zip -O tools.zip
           unzip -q tools.zip
           rm tools.zip
+          # Keep the cmdline-tools folder inside latest
           mkdir -p latest
-          mv cmdline-tools/* latest/
-
-
-      - name: Install Android API 34 + build tools
-        run: |
-          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses
+          mv cmdline-tools latest/
       
-          # Fix missing repositories file
+      - name: Accept licenses and install SDK
+        run: |
           mkdir -p ~/.android
           touch ~/.android/repositories.cfg
-      
-          # Install required packages manually
-          $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager \
-            "platforms;android-34" \
+          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/cmdline-tools/bin/sdkmanager --licenses
+          $ANDROID_SDK_ROOT/cmdline-tools/latest/cmdline-tools/bin/sdkmanager \
             "platform-tools" \
+            "platforms;android-34" \
             "build-tools;34.0.0"
+
 
       # - name: Setup Android SDK and install API 34
       #   uses: android-actions/setup-android@v3
