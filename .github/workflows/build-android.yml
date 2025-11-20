@@ -17,14 +17,6 @@ jobs:
       PATH: /usr/lib/android-sdk/cmdline-tools/tools/bin:/usr/lib/android-sdk/platform-tools:/usr/lib/android-sdk/emulator:${PATH}
 
     steps:
-    - name: Install required system tools
-      run: |
-        apt update
-        apt install -y tar unzip git ca-certificates
-
-    - name: Checkout self
-      uses: actions/checkout@v4
-
     - name: Clone GalaxyBudsClient
       run: |
         git clone https://github.com/timschneeb/GalaxyBudsClient.git external-GalaxyBudsClient
