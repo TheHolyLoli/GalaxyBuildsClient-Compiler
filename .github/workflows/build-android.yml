@@ -39,6 +39,16 @@ jobs:
         mv cmdline-tools latest
         yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_SDK_ROOT "platform-tools" "platforms;android-34" "build-tools;34.0.0"
 
+    - name: Create Directory.Build.props to override TFM
+      run: |
+        cat <<EOF > GalaxyBudsClient/GalaxyBudsClient.Android/Directory.Build.props
+        <Project>
+          <PropertyGroup>
+            <TargetFramework>net8.0-android34</TargetFramework>
+          </PropertyGroup>
+        </Project>
+        EOF
+
     - name: Build GalaxyBudsClient.Android
       working-directory: GalaxyBudsClient/GalaxyBudsClient.Android
       run: |
