@@ -10,6 +10,9 @@ on:
 jobs:
   build-android:
     runs-on: ubuntu-latest
+    env:
+      ANDROID_SDK_ROOT: $RUNNER_TEMP/android-sdk
+
 
     steps:
       - name: Checkout workflow repo
@@ -29,15 +32,37 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: 17
+          
+      - name: Install Android commandline-tools
+        run: |
+          mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
+          cd $ANDROID_SDK_ROOT/cmdline-tools
+          wget https://dl.google.com/android/repository/commandlinetools-linux-12266719_latest.zip -O tools.zip
+          unzip -q tools.zip
+          rm tools.zip
+          mv cmdline-tools latest
+      - name: Install Android API 34 + build tools
+        run: |
+          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses
+      
+          # Fix missing repositories file
+          mkdir -p ~/.android
+          touch ~/.android/repositories.cfg
+      
+          # Install required packages manually
+          $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager \
+            "platforms;android-34" \
+            "platform-tools" \
+            "build-tools;34.0.0"
 
-      - name: Setup Android SDK and install API 34
-        uses: android-actions/setup-android@v3
-        with:
-          # installs commandline tools + platform-tools by default;
-          # also install platform API 34 and build-tools 34.0.0
-          packages: 'platform-tools "platforms;android-34" "build-tools;34.0.0"'
-          accept-android-sdk-licenses: 'true'
-        # This action will set up ANDROID_SDK_ROOT and add sdkmanager to PATH. :contentReference[oaicite:1]{index=1}
+      # - name: Setup Android SDK and install API 34
+      #   uses: android-actions/setup-android@v3
+      #   with:
+      #     # installs commandline tools + platform-tools by default;
+      #     # also install platform API 34 and build-tools 34.0.0
+      #     packages: 'platform-tools "platforms;android-34" "build-tools;34.0.0"'
+      #     accept-android-sdk-licenses: 'true'
+      #   # This action will set up ANDROID_SDK_ROOT and add sdkmanager to PATH. :contentReference[oaicite:1]{index=1}
 
       - name: Setup .NET 8 SDK
         uses: actions/setup-dotnet@v3
