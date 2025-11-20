@@ -50,6 +50,7 @@ jobs:
           -p:DebugType=PdbOnly \
           -p:EmbedAssembliesIntoApk=true \
           -p:NoDemo=true
+          -p:TargetFramework=net8.0-android34
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
