@@ -41,7 +41,7 @@ jobs:
           unzip -q tools.zip
           rm tools.zip
           ls .
-          ls cmdline-tools
+          ls cmdline-tools/bin
           mv cmdline-tools latest
       
       - name: Accept licenses and install Android API 34
