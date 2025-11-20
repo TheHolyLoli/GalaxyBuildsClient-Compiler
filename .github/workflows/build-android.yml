@@ -50,10 +50,13 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.x'
+      - name: Install .NET Android Workload (with API 34)
+        run: |
+          dotnet workload install android --include-previews
+          dotnet workload install android-platform --include-previews
+          dotnet workload install android-emulator --include-previews
 
-      - name: Install .NET Android Workload
-        run: dotnet workload install android
-
+      
       - name: Restore Dependencies
         # We explicitly restore for the ARM64 runtime to match our target.
         # Since the project file is patched, -p:TargetFramework should be redundant but is kept for safety.
