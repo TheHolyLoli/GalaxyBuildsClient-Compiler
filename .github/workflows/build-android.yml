@@ -1,7 +1,6 @@
-name: Build Android (API 34, net8.0-android)
+name: Build GalaxyBudsClient Android
 
 on:
-  workflow_dispatch:
   push:
     branches: [ main ]
   pull_request:
@@ -11,87 +10,48 @@ jobs:
   build-android:
     runs-on: ubuntu-latest
     env:
-      ANDROID_SDK_ROOT: $GITHUB_WORKSPACE/android-sdk
-
-
-
+      ANDROID_SDK_ROOT: ${{ github.workspace }}/android-sdk
 
     steps:
-      - name: Checkout workflow repo
-        uses: actions/checkout@v4
+    - name: Checkout this workflow repo
+      uses: actions/checkout@v3
 
-      # Clone the external repo (GalaxyBudsClient) into a subfolder
-      - name: Checkout external repo (GalaxyBudsClient)
-        uses: actions/checkout@v4
-        with:
-          repository: timschneeb/GalaxyBudsClient
-          path: GalaxyBudsClient
-          # if the repo were private, you'd pass a token:
-          # token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+    - name: Clone GalaxyBudsClient repo
+      run: git clone https://github.com/timschneeb/GalaxyBudsClient.git
 
-      - name: Set up JDK 17 (required by .NET Android tooling)
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: 17
-      
-      - name: Install Android cmdline-tools v9 (stable)
-        run: |
-          cd $ANDROID_SDK_ROOT
-          wget https://dl.google.com/android/repository/commandlinetools-linux-13114758_latest.zip -O tools.zip
-          unzip -q tools.zip
-          rm tools.zip
-          ls cmdline-tools/bin
-      
-      - name: Accept licenses and install Android API 34
-        run: |
-          mkdir -p ~/.android
-          touch ~/.android/repositories.cfg
-          yes | $ANDROID_SDK_ROOT/cmdline-tools/bin/sdkmanager --licenses
-          $ANDROID_SDK_ROOT/cmdline-tools/bin/sdkmanager \
-            "platform-tools" \
-            "platforms;android-34" \
-            "build-tools;34.0.0"
+    - name: Install .NET 8 SDK
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: 8.0.x
 
-      - name: Setup .NET 8 SDK
-        uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: '8.0.x'
+    - name: Install .NET Android workload
+      run: dotnet workload install android
 
-      - name: Show versions (debug)
-        run: |
-          dotnet --info
-          java -version
-          sdkmanager --list || true
+    - name: Install Android SDK & API 34
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y unzip wget
+        mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
+        cd $ANDROID_SDK_ROOT/cmdline-tools
+        wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O cmdline-tools.zip
+        unzip cmdline-tools.zip
+        mv cmdline-tools latest
+        yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_SDK_ROOT "platform-tools" "platforms;android-34" "build-tools;34.0.0"
 
-      - name: Install .NET Android workload
-        run: |
-          # Ensure Android workload (this installs the .NET Android workload packs)
-          dotnet workload install android --yes
-        # Microsoft docs recommend installing the android workload to build .NET for Android. :contentReference[oaicite:2]{index=2}
+    - name: Build GalaxyBudsClient.Android
+      working-directory: GalaxyBudsClient/GalaxyBudsClient.Android
+      run: |
+        dotnet publish \
+          -f net8.0-android \
+          -c Debug \
+          -p:AndroidPackageFormats=apk \
+          -p:AndroidSdkDirectory=$ANDROID_SDK_ROOT \
+          -p:DebugType=PdbOnly \
+          -p:EmbedAssembliesIntoApk=true \
+          -p:NoDemo=true
 
-      - name: Restore NuGet packages
-        run: |
-          cd GalaxyBudsClient
-          dotnet restore
-
-      - name: Build & publish Android (net8.0-android)
-        run: |
-          cd GalaxyBudsClient/GalaxyBudsClient.Android
-          # Use Publish to obtain final apk/aab artifacts. Adjust configuration/profile as needed.
-          dotnet publish -c Release -f net8.0-android -o ./publish
-
-      - name: List publish output (debug)
-        run: |
-          ls -la GalaxyBudsClient/GalaxyBudsClient.Android/publish || true
-          find GalaxyBudsClient -type f -name "*.apk" -o -name "*.aab" -maxdepth 6 || true
-
-      - name: Upload APK/AAB artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: galaxybudsclient-android-artifacts
-          path: |
-            GalaxyBudsClient/GalaxyBudsClient.Android/publish/**/*.apk
-            GalaxyBudsClient/GalaxyBudsClient.Android/publish/**/*.aab
-            GalaxyBudsClient/**/bin/**/Release/**/*.apk
-            GalaxyBudsClient/**/bin/**/Release/**/*.aab
+    - name: Upload APK
+      uses: actions/upload-artifact@v3
+      with:
+        name: GalaxyBudsClient-Android-APK
+        path: GalaxyBudsClient/GalaxyBudsClient.Android/bin/Debug/net8.0-android/android-arm64/publish/*.apk
