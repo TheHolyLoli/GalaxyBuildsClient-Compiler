@@ -1,7 +1,7 @@
-name: Build GalaxyBudsClient Android
+# .github/workflows/build-android.yml
+name: Build Android (API 34, net8.0-android)
 
 on:
-  workflow_dispatch:
   push:
     branches: [ main ]
   pull_request:
@@ -10,77 +10,78 @@ on:
 jobs:
   build-android:
     runs-on: ubuntu-latest
-
     env:
-      ANDROID_HOME: /usr/lib/android-sdk
-      ANDROID_SDK_ROOT: /usr/lib/android-sdk
-      PATH: /usr/lib/android-sdk/cmdline-tools/tools/bin:/usr/lib/android-sdk/platform-tools:/usr/lib/android-sdk/emulator:${PATH}
+      # explicit SDK root (setup-android also sets this)
+      ANDROID_SDK_ROOT: ${{ runner.temp }}/android-sdk
 
     steps:
-    - name: Clone GalaxyBudsClient
-      run: |
-        git clone https://github.com/timschneeb/GalaxyBudsClient.git external-GalaxyBudsClient
-        cd external-GalaxyBudsClient
-        git checkout master
+      - name: Checkout workflow repo
+        uses: actions/checkout@v4
 
-    # --------------------------------------------------------
-    # Install Java (required by Google's sdkmanager tool)
-    # --------------------------------------------------------
-    - name: Install Java 17
-      run: sudo apt-get update && sudo apt-get install -y openjdk-17-jdk
+      # Clone the external repo (GalaxyBudsClient) into a subfolder
+      - name: Checkout external repo (GalaxyBudsClient)
+        uses: actions/checkout@v4
+        with:
+          repository: timschneeb/GalaxyBudsClient
+          path: GalaxyBudsClient
+          # if the repo were private, you'd pass a token:
+          # token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
 
-    # --------------------------------------------------------
-    # Install Android command-line tools
-    # --------------------------------------------------------
-    - name: Install Android SDK command line tools
-      run: |
-        sudo mkdir -p /usr/lib/android-sdk/cmdline-tools
-        cd /usr/lib/android-sdk/cmdline-tools
-        sudo wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
-        sudo unzip commandlinetools-linux-11076708_latest.zip -d tools
-        sudo rm commandlinetools-linux-11076708_latest.zip
+      - name: Set up JDK 11 (required by .NET Android tooling)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+          cache: 'maven' # optional cache for build speed
 
-    # --------------------------------------------------------
-    # Install Android SDK platform 34 (required for Avalonia)
-    # --------------------------------------------------------
-    - name: Install Android SDK platform 34
-      run: |
-        yes | sdkmanager --sdk_root=${ANDROID_SDK_ROOT} "platforms;android-34" "build-tools;34.0.0" "platform-tools"
+      - name: Setup Android SDK and install API 34
+        uses: android-actions/setup-android@v3
+        with:
+          # installs commandline tools + platform-tools by default;
+          # also install platform API 34 and build-tools 34.0.0
+          packages: 'platform-tools "platforms;android-34" "build-tools;34.0.0"'
+          accept-android-sdk-licenses: 'true'
+        # This action will set up ANDROID_SDK_ROOT and add sdkmanager to PATH. :contentReference[oaicite:1]{index=1}
 
-    # --------------------------------------------------------
-    # Install .NET 8 SDK + Android workload
-    # --------------------------------------------------------
-    - name: Setup .NET 8 SDK
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: 8.0.x
+      - name: Setup .NET 8 SDK
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0.x'
 
-    - name: Install .NET Android workload
-      run: dotnet workload install android
+      - name: Show versions (debug)
+        run: |
+          dotnet --info
+          java -version
+          sdkmanager --list || true
 
-    # --------------------------------------------------------
-    # Restore and Build Android (TFM: net8.0-android34)
-    # --------------------------------------------------------
-    - name: Restore Android project
-      run: |
-        cd external-GalaxyBudsClient
-        dotnet restore GalaxyBudsClient.Android/GalaxyBudsClient.Android.csproj
+      - name: Install .NET Android workload
+        run: |
+          # Ensure Android workload (this installs the .NET Android workload packs)
+          dotnet workload install android --yes
+        # Microsoft docs recommend installing the android workload to build .NET for Android. :contentReference[oaicite:2]{index=2}
 
-    - name: Build Android (Release)
-      run: |
-        cd external-GalaxyBudsClient
-        dotnet build GalaxyBudsClient.sln \
-          -c Release \
-          -f net8.0-android34 \
-          -p:AndroidSdkDirectory=${ANDROID_SDK_ROOT} \
-          -p:SupportedOSPlatformVersion=34
+      - name: Restore NuGet packages
+        run: |
+          cd GalaxyBudsClient
+          dotnet restore
 
-    # --------------------------------------------------------
-    # Upload all APK artifacts
-    # --------------------------------------------------------
-    - name: Upload APK
-      uses: actions/upload-artifact@v4
-      with:
-        name: GalaxyBudsClient-Android
-        path: |
-          external-GalaxyBudsClient/**/bin/Release/net8.0-android*/**/*.apk
+      - name: Build & publish Android (net8.0-android)
+        run: |
+          cd GalaxyBudsClient/GalaxyBudsClient.Android
+          # Use Publish to obtain final apk/aab artifacts. Adjust configuration/profile as needed.
+          dotnet publish -c Release -f net8.0-android -o ./publish
+
+      - name: List publish output (debug)
+        run: |
+          ls -la GalaxyBudsClient/GalaxyBudsClient.Android/publish || true
+          find GalaxyBudsClient -type f -name "*.apk" -o -name "*.aab" -maxdepth 6 || true
+
+      - name: Upload APK/AAB artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: galaxybudsclient-android-artifacts
+          path: |
+            GalaxyBudsClient/GalaxyBudsClient.Android/publish/**/*.apk
+            GalaxyBudsClient/GalaxyBudsClient.Android/publish/**/*.aab
+            GalaxyBudsClient/**/bin/**/Release/**/*.apk
+            GalaxyBudsClient/**/bin/**/Release/**/*.aab
